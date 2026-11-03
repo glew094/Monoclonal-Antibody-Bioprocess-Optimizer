@@ -1,8 +1,3 @@
-# =======================================================================
-# CONSTANTS
-# Define constant values that do not change throughout your program.
-# =======================================================================
-
 # Bioreactor turnaround time
 DOWNTIME_DAYS = 1.0
 

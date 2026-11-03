@@ -1,9 +1,6 @@
+import os
 import numpy as np
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.pipeline import make_pipeline
-
-from src.functions import load_mab_datasets, generate_x_lag_cur_var
-from src.classes import StandardScalerVAR
+from src.functions import load_mab_datasets, tune_nvar_model, optimize_bioprocess_economics, generate_analysis_figures
 
 
 def main():
@@ -16,25 +13,20 @@ def main():
     ]
     batch_ids = np.unique(df_ts["Batch ID"])
 
-    # 2. Lag Generation (Testing p=3)
-    p = 3
-    x_lag, x_cur, t_cur, b_cur = generate_x_lag_cur_var(
-        p=p, batch_ids=batch_ids, df=df_ts, features=features
-    )
+    # 2. Hyperparameter Tuning (LOBOCV)
+    best_p, best_k = tune_nvar_model(df_ts, features, batch_ids)
 
-    print(f"Lagged Matrix Shape (x_lag): {x_lag.shape}")
-    print(f"Target Matrix Shape (x_cur): {x_cur.shape}")
+    # 3. Economic Monte Carlo Simulations (p=2, k=5)
+    #print("Running NVAR Economic Monte Carlo Simulations (p=2, k=5)...")
+    #df_results = optimize_bioprocess_economics(df_ic, df_ts, features, batch_ids, p=2, k=5, n_sims=1000)
+    #df_results = df_results.sort_values(by="Max STP [$/(L*d)]", ascending=False)
+    #df_results.to_csv(os.path.join("tables", "optimized_economic_results.csv"), index=False)
+    #best_batch = df_results.iloc[0]
+    #print(f"\n--- GLOBAL OPTIMUM FOUND (Batch {best_batch['Batch ID']}) ---")
 
-    # 3. Model Pipeline Initialization
-    model = make_pipeline(
-        StandardScalerVAR(p=p),
-        KNeighborsRegressor(n_neighbors=5, weights="uniform")
-    )
 
-    # Test the fit on all data
-    model.fit(x_lag, x_cur)
-    print("k-NN NVAR Pipeline successfully fitted.")
-
+    # 4. Generate Portfolio Figures for the Global Optimum (Batch 127)
+    generate_analysis_figures(df_ic, df_ts, features, batch_ids, target_batch=127, p=2, k=5)
 
 if __name__ == "__main__":
     main()
